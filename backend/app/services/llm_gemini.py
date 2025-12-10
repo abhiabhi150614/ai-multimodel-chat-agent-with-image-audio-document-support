@@ -9,9 +9,9 @@ class GeminiService:
     def __init__(self):
         if settings.GEMINI_API_KEY:
             genai.configure(api_key=settings.GEMINI_API_KEY)
-            # Using gemini-2.0-flash-exp as requested (interpreted from "2.5")
-            self.model = genai.GenerativeModel('gemini-2.5-flash') 
-            self.vision_model = genai.GenerativeModel('gemini-2.5-flash')
+            
+            self.model = genai.GenerativeModel('gemini-2.5-flash-lite') 
+            self.vision_model = genai.GenerativeModel('gemini-2.5-flash-lite')
         else:
             logger.warning("GEMINI_API_KEY not set. Gemini service will fail if used.")
             self.model = None

@@ -47,7 +47,7 @@ class AgentExecutor:
                 # Dispatcher
                 if step.name == "extract_text_from_image":
                     if file_bytes:
-                        txt, conf = ocr_service.extract_text(file_bytes)
+                        txt, conf = await ocr_service.extract_text(file_bytes)
                         execution_context["extracted_text"] += f"\n{txt}"
                         log.output_summary = f"Extracted {len(txt)} chars (Confidence: {conf:.2f})"
                         extracted_text = txt
