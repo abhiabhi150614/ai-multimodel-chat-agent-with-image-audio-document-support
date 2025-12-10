@@ -39,4 +39,49 @@ A production-quality agentic application built with **FastAPI** (Backend) and **
     - Paste a YouTube URL -> "Summarize this video".
 
 ## Architecture
-See `docs/architecture.md` for details.
+
+### System Overview
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │   Backend       │    │  External APIs  │
+│   (React)       │    │   (FastAPI)     │    │                 │
+├─────────────────┤    ├─────────────────┤    ├─────────────────┤
+│ • Chat UI       │◄──►│ • Agent Planner │◄──►│ • Gemini API    │
+│ • File Upload   │    │ • Agent Executor│    │ • YouTube API   │
+│ • Plan/Logs     │    │ • OCR Service   │    │ • Tesseract OCR │
+│ • Glassmorphism │    │ • PDF Service   │    │                 │
+└─────────────────┘    │ • Audio Service │    └─────────────────┘
+                       │ • History Mgmt  │
+                       └─────────────────┘
+```
+
+### Core Components
+
+**Frontend (React + TypeScript)**
+- `ChatLayout.tsx` - Main chat interface
+- `MessageList.tsx` - Message display  
+- `InputBar.tsx` - User input handling
+- `PlanAndLogsPanel.tsx` - Execution visualization
+
+**Backend Services**
+- **Agent Planner**: Analyzes intent, creates execution plans, handles clarification
+- **Agent Executor**: Executes plans with real-time logging and error recovery
+- **LLM Service**: Gemini API integration with timeout management
+- **OCR Service**: Image text extraction with confidence scoring
+- **PDF Service**: Document text extraction
+- **Audio Service**: Transcription and summarization
+- **YouTube Service**: Video transcript fetching
+- **History Service**: Conversation state management
+
+### Data Flow
+```
+User Input → Intent Analysis → Plan Generation → Execution → Response
+     ↓              ↓              ↓           ↓         ↓
+File Upload → Context Building → Service Dispatch → Logging → UI Update
+```
+
+### Key Features
+- **Intelligent Planning**: Fast-path for common queries, clarification logic
+- **Multimodal Processing**: Images, PDFs, Audio, YouTube URLs
+- **Real-time Monitoring**: Step-by-step execution logs and performance metrics
+- **Conversation Context**: Persistent chat history and context awareness
