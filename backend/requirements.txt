@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+python-multipart
+google-generativeai
+python-dotenv
+pydantic-settings
+pypdf
+pdfplumber
+pytesseract
+Pillow
+youtube-transcript-api
+requests
+pytest
+httpx

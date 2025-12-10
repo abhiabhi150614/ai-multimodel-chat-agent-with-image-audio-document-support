@@ -1,0 +1,23 @@
+
+graph TD
+    User[User (React UI)] -->|POST /run| API[FastAPI Endpoint]
+    
+    subgraph Backend
+        API --> Planner[Agent Planner (Gemini)]
+        Planner -->|Plan JSON| Executor[Agent Executor]
+        
+        Executor -->|Step 1| Service1[OCR Service]
+        Executor -->|Step 2| Service2[PDF Service]
+        Executor -->|Step 3| Service3[YouTube Service]
+        Executor -->|Step 4| Service4[Audio Service]
+        Executor -->|Step 5| Service5[LLM Service (Gemini)]
+        
+        Service1 --> Tesseract
+        Service2 --> PDFPlumber
+        Service3 --> YouTube API
+        Service4 --> Gemini Audio
+        Service5 --> Gemini Flash
+    end
+    
+    Executor -->|Final Response| API
+    API -->|JSON Result| User
