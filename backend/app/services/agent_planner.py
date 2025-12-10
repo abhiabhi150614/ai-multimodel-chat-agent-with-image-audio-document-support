@@ -6,6 +6,26 @@ from app.core.logging import logger
 from typing import List, Tuple, Optional
 
 class AgentPlanner:
+    def _check_clarification_needed(self, text: str, file_type: str = None) -> Optional[str]:
+        """Check if clarification is needed and return question"""
+        text_lower = text.lower().strip()
+        
+        # File uploaded but no clear instruction
+        if file_type and not text.strip():
+            if 'pdf' in file_type:
+                return "I see you've uploaded a PDF. What would you like me to do with it? (e.g., summarize, extract text, analyze content, rate resume)"
+            elif 'image' in file_type:
+                return "I see you've uploaded an image. What would you like me to do with it? (e.g., extract text, analyze content, explain code)"
+            elif 'audio' in file_type:
+                return "I see you've uploaded an audio file. What would you like me to do with it? (e.g., transcribe, summarize)"
+        
+        # Resume rating without specific criteria
+        if file_type and 'pdf' in file_type and ('rate' in text_lower or 'evaluate' in text_lower) and 'resume' in text_lower:
+            if not any(word in text_lower for word in ['role', 'position', 'job', 'skill', 'experience', 'developer', 'engineer', 'manager']):
+                return "I can help rate this resume! To provide a better evaluation, could you specify: What role/position is this resume for? Any specific skills or requirements to focus on?"
+        
+        return None
+    
     def _get_fast_plan(self, text: str, file_type: str = None) -> Optional[List[PlanStep]]:
         """Return fast plan for common patterns without LLM call"""
         text_lower = text.lower().strip()
@@ -19,7 +39,7 @@ class AgentPlanner:
         if 'what is python' in text_lower or 'what is java' in text_lower:
             return [PlanStep(name="conversational_answer", description="Programming language explanation")]
             
-        # File + rating/evaluation
+        # File + rating/evaluation with sufficient context
         if file_type and ('rate' in text_lower or 'evaluate' in text_lower or 'analyze' in text_lower):
             if 'pdf' in file_type:
                 return [
@@ -47,6 +67,11 @@ class AgentPlanner:
         Returns: (status, clarification_question, plan_steps)
         status: "success" or "needs_clarification"
         """
+        
+        # Check if clarification is needed first
+        clarification = self._check_clarification_needed(user_text, file_type)
+        if clarification:
+            return "needs_clarification", clarification, []
         
         # Fast path for common patterns
         fast_plan = self._get_fast_plan(user_text, file_type)

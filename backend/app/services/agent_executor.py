@@ -35,9 +35,20 @@ class AgentExecutor:
 
         for step in plan:
             ts = time.time()
+            # Set meaningful input summary based on step type
+            input_summary = "Processing..."
+            if step.name == "extract_text_from_image":
+                input_summary = f"Extracting text from image: {file_name or 'uploaded image'}"
+            elif step.name == "extract_text_from_pdf":
+                input_summary = f"Extracting text from PDF: {file_name or 'uploaded PDF'}"
+            elif step.name == "transcribe_audio":
+                input_summary = f"Transcribing audio file: {file_name or 'uploaded audio'}"
+            elif step.name == "conversational_answer":
+                input_summary = f"Analyzing query: {text[:50]}..."
+            
             log = LogEntry(
                 step_name=step.name,
-                input_summary="Processing...", 
+                input_summary=input_summary, 
                 output_summary="", 
                 status="running", 
                 duration_ms=0
@@ -49,18 +60,21 @@ class AgentExecutor:
                     if file_bytes:
                         txt, conf = await ocr_service.extract_text(file_bytes)
                         execution_context["extracted_text"] += f"\n{txt}"
-                        log.output_summary = f"Extracted {len(txt)} chars (Confidence: {conf:.2f})"
+                        log.output_summary = f"Successfully extracted {len(txt)} characters with {conf:.1%} confidence"
                         extracted_text = txt
                     else:
                         log.status = "failed"
-                        log.output_summary = "No file provided"
+                        log.output_summary = "No image file provided for text extraction"
 
                 elif step.name == "extract_text_from_pdf":
                     if file_bytes:
                         txt, conf = pdf_service.extract_text(file_bytes)
                         execution_context["extracted_text"] += f"\n{txt}"
-                        log.output_summary = f"Extracted {len(txt)} chars"
+                        log.output_summary = f"Successfully extracted {len(txt)} characters from PDF"
                         extracted_text = txt
+                    else:
+                        log.status = "failed"
+                        log.output_summary = "No PDF file provided for text extraction"
 
                 elif step.name == "fetch_youtube_transcript":
                     url = text # Simplification: assume URL in text
@@ -76,20 +90,22 @@ class AgentExecutor:
                 elif step.name == "transcribe_audio":
                     if file_bytes:
                         # Logic to call audio service
-                        # Audio service returns JSON string usually
                         resp = await audio_service.process_audio(file_bytes, file_name or "audio.mp3")
-                        # Parse JSON if possible to put in final output
                         try:
                             # If audio service returns raw JSON string from LLM
                             audio_data = json.loads(resp)
-                            execution_context["extracted_text"] = audio_data.get("transcript", "")
-                            extracted_text = audio_data.get("transcript", "")
-                            final_output.update(audio_data) # Merges summaries
+                            transcript = audio_data.get("transcript", "")
+                            execution_context["extracted_text"] = transcript
+                            extracted_text = transcript
+                            final_output.update(audio_data)
                             task_type = "audio_summary"
-                            log.output_summary = "Audio processed"
+                            log.output_summary = f"Successfully transcribed audio - {len(transcript)} characters extracted"
                         except:
-                            log.output_summary = "Audio processed (raw response)"
                             execution_context["extracted_text"] = resp
+                            log.output_summary = f"Audio transcribed - {len(resp)} characters extracted"
+                    else:
+                        log.status = "failed"
+                        log.output_summary = "No audio file provided for transcription"
 
                 elif step.name == "summarize":
                     content = execution_context["extracted_text"] or execution_context["text"]

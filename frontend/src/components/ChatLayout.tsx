@@ -94,7 +94,8 @@ const ChatLayout: React.FC = () => {
     }
   };
 
-  const selectedMessage = messages.find(m => m.role === 'agent' && m.response);
+  // Get the most recent agent message with response (not the first one)
+  const selectedMessage = messages.filter(m => m.role === 'agent' && m.response).pop();
 
   return (
     <div style={{display: 'flex', gap: '20px', height: '100%', overflow: 'hidden'}}>
