@@ -4,14 +4,15 @@ from app.core.config import settings
 from app.core.logging import logger
 from typing import Optional, List, Dict, Any
 import json
+import asyncio
 
 class GeminiService:
     def __init__(self):
         if settings.GEMINI_API_KEY:
             genai.configure(api_key=settings.GEMINI_API_KEY)
             
-            self.model = genai.GenerativeModel('gemini-2.5-flash-lite') 
-            self.vision_model = genai.GenerativeModel('gemini-2.5-flash-lite')
+            self.model = genai.GenerativeModel('gemini-2.5-flash') 
+            self.vision_model = genai.GenerativeModel('gemini-2.5-flash')
         else:
             logger.warning("GEMINI_API_KEY not set. Gemini service will fail if used.")
             self.model = None
@@ -20,10 +21,21 @@ class GeminiService:
         if not self.model:
             raise ValueError("Gemini API Key not set")
         try:
-            response = await self.model.generate_content_async(prompt)
+            logger.info(f"Making Gemini API call with model: gemini-2.5-flash")
+            # Add timeout to prevent hanging
+            response = await asyncio.wait_for(
+                self.model.generate_content_async(prompt),
+                timeout=60.0
+            )
+            logger.info(f"Gemini API call successful, response length: {len(response.text)}")
             return response.text
+        except asyncio.TimeoutError:
+            logger.error("Gemini request timed out after 60 seconds")
+            raise Exception("Request timed out - model is too slow")
         except Exception as e:
-            logger.error(f"Gemini generation error: {e}")
+            logger.error(f"Gemini generation error: {type(e).__name__}: {e}")
+            logger.error(f"API Key present: {bool(settings.GEMINI_API_KEY)}")
+            logger.error(f"API Key length: {len(settings.GEMINI_API_KEY) if settings.GEMINI_API_KEY else 0}")
             raise e
 
     async def generate_with_audio(self, audio_file_path: str, prompt: str) -> str:

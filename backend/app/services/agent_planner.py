@@ -6,6 +6,34 @@ from app.core.logging import logger
 from typing import List, Tuple, Optional
 
 class AgentPlanner:
+    def _get_fast_plan(self, text: str, file_type: str = None) -> Optional[List[PlanStep]]:
+        """Return fast plan for common patterns without LLM call"""
+        text_lower = text.lower().strip()
+        
+        # Simple greetings
+        greetings = ['hi', 'hii', 'hello', 'hey', 'good morning', 'good afternoon', 'good evening']
+        if text_lower in greetings:
+            return [PlanStep(name="conversational_answer", description="Simple greeting response")]
+        
+        # Common questions
+        if 'what is python' in text_lower or 'what is java' in text_lower:
+            return [PlanStep(name="conversational_answer", description="Programming language explanation")]
+            
+        # File + rating/evaluation
+        if file_type and ('rate' in text_lower or 'evaluate' in text_lower or 'analyze' in text_lower):
+            if 'pdf' in file_type:
+                return [
+                    PlanStep(name="extract_text_from_pdf", description="Extract PDF text"),
+                    PlanStep(name="conversational_answer", description="Analyze content")
+                ]
+            elif 'image' in file_type:
+                return [
+                    PlanStep(name="extract_text_from_image", description="Extract image text"),
+                    PlanStep(name="conversational_answer", description="Analyze content")
+                ]
+        
+        return None
+    
     async def create_plan(
         self, 
         user_text: str, 
@@ -19,6 +47,11 @@ class AgentPlanner:
         Returns: (status, clarification_question, plan_steps)
         status: "success" or "needs_clarification"
         """
+        
+        # Fast path for common patterns
+        fast_plan = self._get_fast_plan(user_text, file_type)
+        if fast_plan:
+            return "success", None, fast_plan
         
         # Construct context
         context_str = f"User Input: {user_text}\n"
@@ -74,7 +107,12 @@ class AgentPlanner:
         full_prompt = f"{system_prompt}\n\nTask Context:\n{context_str}\n\nGenerate JSON response:"
         
         try:
-            response_text = await gemini_service.generate_text(full_prompt)
+            # Use very short timeout for planning
+            import asyncio
+            response_text = await asyncio.wait_for(
+                gemini_service.generate_text(full_prompt),
+                timeout=10.0
+            )
             # Cleanup code blocks if Gemini adds them
             cleaned_text = response_text.replace("```json", "").replace("```", "").strip()
             data = json.loads(cleaned_text)

@@ -126,18 +126,32 @@ class AgentExecutor:
                         log.status = "failed"
 
                 elif step.name == "conversational_answer":
-                     content = execution_context["extracted_text"] or ""
+                     # Fast path for simple greetings
+                     simple_greetings = {
+                         'hi': 'Hello! How can I help you today?',
+                         'hii': 'Hi there! What can I do for you?',
+                         'hello': 'Hello! I\'m here to help with any questions you have.',
+                         'hey': 'Hey! What would you like to know?'
+                     }
                      
-                     # Build context with history
-                     history_context = ""
-                     if conversation_history:
-                         history_context = "\n\nPrevious Conversation:\n"
-                         for msg in conversation_history[-6:]:  # Last 3 exchanges (6 messages)
-                             role = msg.get('role', '').upper()
-                             msg_content = msg.get('content', '')
-                             history_context += f"{role}: {msg_content}\n"
-                     
-                     prompt = f"""You are a helpful AI assistant. Use the context below to answer the user's question.
+                     if text.lower().strip() in simple_greetings:
+                         ans = simple_greetings[text.lower().strip()]
+                         final_output["message"] = ans
+                         task_type = "conversation"
+                         log.output_summary = "Fast greeting response"
+                     else:
+                         content = execution_context["extracted_text"] or ""
+                         
+                         # Build context with history
+                         history_context = ""
+                         if conversation_history:
+                             history_context = "\n\nPrevious Conversation:\n"
+                             for msg in conversation_history[-6:]:  # Last 3 exchanges (6 messages)
+                                 role = msg.get('role', '').upper()
+                                 msg_content = msg.get('content', '')
+                                 history_context += f"{role}: {msg_content}\n"
+                         
+                         prompt = f"""You are a helpful AI assistant. Use the context below to answer the user's question.
 
 Context from uploaded content:
 {content}
@@ -146,10 +160,10 @@ Context from uploaded content:
 Current User Question: {text}
 
 Answer the question naturally and conversationally. If the question refers to previous context (like "he", "it", "this"), use the conversation history to understand what they're referring to."""
-                     
-                     ans = await gemini_service.generate_text(prompt)
-                     final_output["message"] = ans
-                     task_type = "conversation"
+                         
+                         ans = await gemini_service.generate_text(prompt)
+                         final_output["message"] = ans
+                         task_type = "conversation"
 
                 log.duration_ms = (time.time() - ts) * 1000
                 log.status = "completed" if log.status == "running" else log.status
