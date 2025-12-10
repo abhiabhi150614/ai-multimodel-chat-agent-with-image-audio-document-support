@@ -46,10 +46,28 @@ async def run_agent(
         )
         
         if status == "needs_clarification":
+            # Extract content even during clarification for context
+            extracted_text = ""
+            if file_bytes and file_type:
+                try:
+                    if 'pdf' in file_type:
+                        from app.services.pdf_service import pdf_service
+                        extracted_text, _ = pdf_service.extract_text(file_bytes)
+                    elif 'image' in file_type:
+                        from app.services.ocr_service import ocr_service
+                        extracted_text, _ = await ocr_service.extract_text(file_bytes)
+                    
+                    # Store extracted content in history for future reference
+                    if conversation_id and extracted_text:
+                        history_service.add_message(conversation_id, "system", "File content extracted", extracted_text)
+                except Exception as e:
+                    logger.error(f"Failed to extract content during clarification: {e}")
+            
             return AgentResponse(
                 status="needs_clarification",
                 clarification_question=clarification_question,
-                plan=plan
+                plan=plan,
+                extracted_text=extracted_text
             )
             
         # 4. Execute
@@ -63,11 +81,11 @@ async def run_agent(
         
         # 5. Update History (Agent)
         if conversation_id:
-             # Construct a meaningful string representation of the result for history
-             agent_content = response.extracted_text or ""
+             # Store both response and extracted content
+             agent_content = ""
              if response.final_output:
-                 agent_content += f"\nOutput: {str(response.final_output)}"
-             history_service.add_message(conversation_id, "agent", agent_content)
+                 agent_content = str(response.final_output.get('message', ''))
+             history_service.add_message(conversation_id, "agent", agent_content, response.extracted_text)
 
         return response
         

@@ -158,14 +158,17 @@ class AgentExecutor:
                      else:
                          content = execution_context["extracted_text"] or ""
                          
-                         # Build context with history
+                         # Build context with history including extracted content
                          history_context = ""
                          if conversation_history:
                              history_context = "\n\nPrevious Conversation:\n"
                              for msg in conversation_history[-6:]:  # Last 3 exchanges (6 messages)
                                  role = msg.get('role', '').upper()
                                  msg_content = msg.get('content', '')
+                                 extracted = msg.get('extracted_content', '')
                                  history_context += f"{role}: {msg_content}\n"
+                                 if extracted:
+                                     history_context += f"EXTRACTED CONTENT: {extracted[:500]}...\n"
                          
                          prompt = f"""You are a helpful AI assistant. Use the context below to answer the user's question.
 

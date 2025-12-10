@@ -84,59 +84,102 @@ const PlanAndLogsPanel: React.FC<Props> = ({ message }) => {
         </div>
       </div>
 
-      {/* Logs Section - Collapsible */}
-      {logs && logs.length > 0 && (
-        <div style={{marginTop: 'auto'}}>
-          <button
-            onClick={() => setLogsExpanded(!logsExpanded)}
-            style={{
-              width: '100%',
-              background: 'rgba(255, 111, 97, 0.1)',
-              border: '1px solid var(--glass-border)',
-              borderRadius: '8px',
-              padding: '10px',
-              color: 'var(--text-color)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              fontSize: '0.95rem',
-              fontWeight: '600'
-            }}
-          >
-            <span style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-              <Activity size={16} color="var(--primary-color)" />
-              Execution Logs ({logs.length})
-            </span>
-            {logsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </button>
-          
-          {logsExpanded && (
-            <div style={{
-              marginTop: '8px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '6px',
-              maxHeight: '250px',
-              overflowY: 'auto'
-            }}>
-              {logs.map((log: LogEntry, idx: number) => (
+      {/* Logs Section - Always Visible */}
+      <div style={{marginTop: '15px'}}>
+        <h3 style={{
+          fontSize: '1.1rem',
+          fontWeight: 'bold',
+          marginBottom: '12px',
+          color: 'var(--primary-color)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <Activity size={18} />
+          Execution Logs {logs && logs.length > 0 && `(${logs.length})`}
+        </h3>
+        
+        {logs && logs.length > 0 ? (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            maxHeight: '300px',
+            overflowY: 'auto',
+            padding: '5px'
+          }}>
+            {logs.map((log: LogEntry, idx: number) => {
+              const statusColor = log.status === 'completed' ? '#66fcf1' : 
+                                log.status === 'failed' ? '#ff6f61' : 
+                                log.status === 'running' ? '#ff9a8b' : '#666';
+              
+              return (
                 <div key={idx} style={{
-                  fontSize: '0.8em',
-                  background: 'rgba(0,0,0,0.2)',
-                  padding: '8px 10px',
-                  borderRadius: '6px',
-                  borderLeft: `3px solid ${log.status === 'completed' ? '#66fcf1' : log.status === 'failed' ? '#ff6f61' : '#666'}`
+                  background: `${statusColor}15`,
+                  border: `1px solid ${statusColor}40`,
+                  borderRadius: '8px',
+                  padding: '12px',
+                  fontSize: '0.85em'
                 }}>
-                  <div style={{fontWeight: 'bold', marginBottom: '4px', fontSize: '0.95em'}}>{log.step_name}</div>
-                  <div style={{opacity: 0.7, fontSize: '0.9em'}}>→ {log.output_summary}</div>
-                  <div style={{opacity: 0.5, fontSize: '0.85em', marginTop: '2px'}}>{log.duration_ms.toFixed(0)}ms</div>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '6px'
+                  }}>
+                    <span style={{
+                      fontWeight: 'bold',
+                      color: statusColor,
+                      fontSize: '0.95em'
+                    }}>
+                      {log.step_name.replace(/_/g, ' ').toUpperCase()}
+                    </span>
+                    <span style={{
+                      fontSize: '0.8em',
+                      opacity: 0.7,
+                      background: 'rgba(0,0,0,0.2)',
+                      padding: '2px 6px',
+                      borderRadius: '4px'
+                    }}>
+                      {log.duration_ms.toFixed(0)}ms
+                    </span>
+                  </div>
+                  
+                  {log.input_summary && (
+                    <div style={{
+                      fontSize: '0.85em',
+                      opacity: 0.8,
+                      marginBottom: '4px',
+                      fontStyle: 'italic'
+                    }}>
+                      📥 {log.input_summary}
+                    </div>
+                  )}
+                  
+                  <div style={{
+                    fontSize: '0.9em',
+                    opacity: 0.9
+                  }}>
+                    📤 {log.output_summary || 'Processing...'}
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{
+            opacity: 0.5,
+            fontSize: '0.9em',
+            textAlign: 'center',
+            padding: '20px',
+            background: 'rgba(0,0,0,0.1)',
+            borderRadius: '8px',
+            border: '1px dashed rgba(255,255,255,0.2)'
+          }}>
+            No execution logs yet
+          </div>
+        )}
+      </div>
       
       {/* Cost Estimate */}
       {cost_estimate !== undefined && cost_estimate !== null && (

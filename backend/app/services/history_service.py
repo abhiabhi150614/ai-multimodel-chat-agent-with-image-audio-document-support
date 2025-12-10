@@ -10,7 +10,7 @@ class HistoryService:
     def get_history(self, conversation_id: str) -> List[Dict[str, str]]:
         return self._storage.get(conversation_id, [])
 
-    def add_message(self, conversation_id: str, role: str, content: str):
+    def add_message(self, conversation_id: str, role: str, content: str, extracted_content: str = None):
         if conversation_id not in self._storage:
             self._storage[conversation_id] = []
         
@@ -18,7 +18,10 @@ class HistoryService:
         if len(self._storage[conversation_id]) > 20: 
             self._storage[conversation_id].pop(0)
             
-        self._storage[conversation_id].append({"role": role, "content": content})
+        message = {"role": role, "content": content}
+        if extracted_content:
+            message["extracted_content"] = extracted_content
+        self._storage[conversation_id].append(message)
         logger.info(f"Added message to history [{conversation_id}]: {role}")
 
     def clear_history(self, conversation_id: str):
